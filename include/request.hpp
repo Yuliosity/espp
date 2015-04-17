@@ -5,9 +5,15 @@
 #ifndef ESPP_REQUEST_HPP
 #define ESPP_REQUEST_HPP
 
-class Request
-{
+#include <memory>
+#include "query.hpp"
 
+namespace espp {
+
+class Request {
+    Query _query;
 };
+
+}
 
 #endif //ESPP_REQUEST_HPP
