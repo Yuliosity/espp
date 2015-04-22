@@ -14,7 +14,10 @@ TEST(Test, RequestHasBodyAndSize) {
 
 TEST(Test, MakeTermRequest) {
     auto req = Request(TermQ("checked", false));
-    ASSERT_EQ(R"({"query":{"term":{"checked":false}},"size":10})", req.toString());
+    const char *sample = R"({"query":{"term":{"checked":false}},"size":10})";
+    ASSERT_EQ(sample, req.toString());
+    Field<bool> checked("checked");
+    ASSERT_EQ(sample, Request(TermQ(checked, false)).toString());
 }
 
 TEST(Test, MakeBoolRequest) {

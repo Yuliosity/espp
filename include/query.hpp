@@ -143,7 +143,6 @@ public:
 /* TODO
 Match Query
 Multi Match Query
-Bool Query
 Boosting Query
 Common Terms Query
 Constant Score Query
