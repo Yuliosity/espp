@@ -7,11 +7,7 @@
 
 using namespace espp;
 
-TEST(Test, HelloWorld) {
-    ASSERT_EQ(2 + 2, 4);
-}
-
-TEST(Test, RequestHasSize) {
+TEST(Test, RequestHasBodyAndSize) {
     auto req = Request().size(42);
-    ASSERT_EQ(R"({"size":42})", req.toString());
+    ASSERT_EQ(R"({"query":{"match_all":{}},"size":42})", req.toString());
 }

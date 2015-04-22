@@ -6,7 +6,6 @@
 #define ESPP_REQUEST_HPP
 
 #include <memory>
-#include "../deps/rapidjson/include/rapidjson/writer.h"
 #include "json.hpp"
 #include "query.hpp"
 
@@ -17,6 +16,12 @@ class Request {
     std::size_t _size = 0;
 
 public:
+
+    Request(Query &&query = MatchAllQ()):
+        _query(std::move(query))
+    {}
+
+
     /*JsonValue toJSON()
     {
         JsonValue res(rapidjson::kObjectType);
@@ -27,6 +32,8 @@ public:
     void toJSON(JsonBuffer &buf)
     {
         buf.StartObject();
+        buf.String("query");
+        _query.toJSON(buf);
         buf.String("size");
         buf.Uint(_size);
         buf.EndObject();
