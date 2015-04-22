@@ -5,6 +5,8 @@
 #ifndef ESPP_QUERY_HPP
 #define ESPP_QUERY_HPP
 
+#include <initializer_list>
+#include <vector>
 #include "json.hpp"
 
 namespace espp
@@ -14,15 +16,95 @@ class IQuery
 {
 public:
     virtual ~IQuery() {}
-    virtual void toJSON(JsonBuffer &) = 0;
+    virtual void toJSON(JsonBuffer &) const = 0;
 };
 
 typedef Wrapper<IQuery> Query;
 
+
+class BoolQ: public IQuery
+{
+    std::vector<Query> _must,
+                       _should,
+                       _mustNot;
+
+    std::size_t _minimumShouldMatch = 0;
+
+    static void printNonemptyArray(const char *name, const std::vector<Query> &v, JsonBuffer &buf)
+    {
+        if (v.size()) {
+            buf.String(name);
+            buf.StartArray();
+            for (const auto &e: v)
+                e.toJSON(buf);
+            buf.EndArray();
+        }
+    }
+
+public:
+    BoolQ()
+    {}
+
+    BoolQ && must(std::initializer_list<Query> queries) &&
+    {
+        _must.insert(_must.end(), queries);
+        return std::move(*this);
+    }
+
+    BoolQ && should(std::initializer_list<Query> queries) &&
+    {
+        _should.insert(_must.end(), queries);
+        return std::move(*this);
+    }
+
+    BoolQ && minimumShouldMatch(std::size_t m) &&
+    {
+        _minimumShouldMatch = m;
+        return std::move(*this);
+    }
+
+    void toJSON(JsonBuffer &buf) const
+    {
+        buf.String("bool");
+        buf.StartObject();
+        printNonemptyArray("must", _must, buf);
+        printNonemptyArray("should", _should, buf);
+        printNonemptyArray("mustNot", _mustNot, buf);
+        if (_minimumShouldMatch != 0) {
+            buf.String("minimum_should_match");
+            buf.Uint(_minimumShouldMatch);
+        }
+        buf.EndObject();
+    }
+
+    BoolQ && operator &&(Query &&q1) &&
+    {
+        _must.push_back(q1);
+        return std::move(*this);
+    }
+
+    BoolQ && operator ||(Query &&q1) &&
+    {
+        _should.push_back(q1);
+        return std::move(*this);
+    }
+};
+
+BoolQ operator&&(Query &&q1, Query &&q2)
+{
+    return BoolQ().must({q1, q2});
+}
+
+BoolQ && operator||(Query &&q1, Query &&q2)
+{
+    return BoolQ().should({q1, q2});
+}
+
+
 class MatchAllQ: public IQuery
 {
 public:
-    void toJSON(JsonBuffer &buf)
+    void toJSON(JsonBuffer &buf) const
     {
         buf.String("match_all");
         buf.StartObject();
@@ -48,7 +130,7 @@ public:
         _val(std::move(val))
     {}
 
-    void toJSON(JsonBuffer &buf)
+    void toJSON(JsonBuffer &buf) const
     {
         buf.String("term");
         buf.StartObject();

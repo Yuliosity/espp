@@ -20,14 +20,14 @@ class Wrapper: public I
     std::shared_ptr<I> _ptr;
 public:
     template<typename T>
-    Wrapper(T && val):
-        _ptr(std::make_shared<T>(std::move(val)))
+    Wrapper(T val):
+        _ptr(std::make_shared<T>(std::forward<T>(val)))
     {}
     /*Wrapper(I &&val):
         _ptr(std::make_shared(std::move(val))
     {}*/
 
-    virtual void toJSON(JsonBuffer &buf)
+    virtual void toJSON(JsonBuffer &buf) const
     {
         buf.StartObject();
         _ptr->toJSON(buf);

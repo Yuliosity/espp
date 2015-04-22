@@ -13,7 +13,7 @@ namespace espp {
 
 class Request {
     Query _query;
-    std::size_t _size = 0;
+    std::size_t _size = 10;
 
 public:
 
@@ -29,7 +29,7 @@ public:
         return res;
     }*/
 
-    void toJSON(JsonBuffer &buf)
+    void toJSON(JsonBuffer &buf) const
     {
         buf.StartObject();
         buf.String("query");
@@ -45,7 +45,7 @@ public:
         return std::move(*this);
     }
 
-    std::string toString()
+    std::string toString() const
     {
         using namespace rapidjson;
         StringBuffer buf;
