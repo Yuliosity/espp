@@ -5,10 +5,9 @@ project(espp CXX)
 
 option(ESPP_BUILD_TESTS "Build espp unittests." ON)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wall -Wextra")
+include_directories(${CMAKE_SOURCE_DIR}/include)
 
-set(SOURCE_FILES main.cpp)
-add_executable(espp ${SOURCE_FILES} include/espp.hpp include/request.hpp)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wall -Wextra")
 
 if(ESPP_BUILD_TESTS)
     add_subdirectory(test)
