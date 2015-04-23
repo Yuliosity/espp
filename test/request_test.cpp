@@ -29,3 +29,9 @@ TEST(Test, MakeBoolRequestWithOperators) {
     auto req = Request(TermQ("checked", false) && TermQ("name", "kimchy") && TermQ("age", 42));
     ASSERT_EQ(R"({"query":{"bool":{"must":[{"term":{"checked":false}},{"term":{"name":"kimchy"}},{"term":{"age":42}}]}},"size":10})", req.toString());
 }
+
+TEST(Test, MakeRangeRequestWithOperators) {
+    Field<int> age("age");
+    auto req = Request(25 <= age <= 30);
+    ASSERT_EQ(R"({"query":{"range":{"age":{"gte":25,"lte":30}}},"size":10})", req.toString());
+}

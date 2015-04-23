@@ -6,6 +6,7 @@
 #include "../deps/rapidjson/include/rapidjson/writer.h"
 
 #include <memory>
+#include <type_traits>
 
 namespace espp
 {
@@ -21,7 +22,8 @@ class Wrapper: public I
 public:
     template<typename T>
     Wrapper(T val):
-        _ptr(std::make_shared<T>(std::forward<T>(val)))
+        _ptr(std::make_shared<typename std::remove_reference<T>::type>(std::forward<T>(val)))
+        //_ptr(new T(std::forward<T>(val)))
     {}
     /*Wrapper(I &&val):
         _ptr(std::make_shared(std::move(val))

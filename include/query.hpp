@@ -112,6 +112,91 @@ public:
     }
 };
 
+class RangeQ: public IQuery
+{
+    std::string _field;
+    Value _lte, _gte;
+public:
+    RangeQ(std::string field):
+        _field(std::move(field))
+    {}
+    template<typename T>
+    RangeQ && gte(T gte)
+    {
+        _gte = std::forward<T>(gte);
+        return std::move(*this);
+    }
+
+    template<typename T>
+    RangeQ && lte(T lte)
+    {
+        _lte = std::forward<T>(lte);
+        return std::move(*this);
+    }
+
+    void toJSON(JsonBuffer &buf) const
+    {
+        buf.String("range");
+        buf.StartObject();
+        buf.String(_field);
+        buf.StartObject();
+        if (!_gte.IsNull()) {
+            buf.String("gte");
+            _gte.Accept(buf);
+        }
+        if (!_lte.IsNull()) {
+            buf.String("lte");
+            _lte.Accept(buf);
+        }
+        buf.EndObject();
+        buf.EndObject();
+    }
+};
+
+template<typename T>
+class TypedRangeQ: public IQuery
+{
+    RangeQ _query;
+public:
+    TypedRangeQ(const Field<T> &field):
+        _query(field.name())
+    {}
+    TypedRangeQ<T> && gte(T val) &&
+    {
+        _query.gte(std::forward<T>(val));
+        return std::move(*this);
+    }
+
+    TypedRangeQ<T> && lte(T val) &&
+    {
+        _query.lte(std::forward<T>(val));
+        return std::move(*this);
+    }
+
+    TypedRangeQ<T> && operator<=(T val) &&
+    {
+        _query.lte(std::forward<T>(val));
+        return std::move(*this);
+    }
+
+    void toJSON(JsonBuffer &buf) const
+    {
+        _query.toJSON(buf);
+    }
+};
+
+template<typename T>
+TypedRangeQ<T> operator<=(T gte, const Field<T> &field)
+{
+    return TypedRangeQ<T>(field).gte(std::forward<T>(gte));
+}
+
+template<typename T>
+TypedRangeQ<T> operator<=(const Field<T> &field, T lte)
+{
+    return TypedRangeQ<T>(field).lte(std::forward<T>(lte));
+}
+
 class TermQ: public IQuery
 {
     std::string _field;
@@ -138,8 +223,44 @@ public:
         _val.Accept(buf);
         buf.EndObject();
     }
-
 };
+
+class TermsQ: public IQuery
+{
+    std::string _field;
+    std::vector<Value> _vals;
+    std::size_t _minimumShouldMatch;
+public:
+    /* Typesafe variant when the field type is known */
+    template<typename T>
+    TermsQ(const Field<T> &field, std::initializer_list<T> vals, std::size_t m = 1):
+            _field(field.name()),
+            _vals(vals),
+            _minimumShouldMatch(m)
+    {}
+    /* Dynamic variant where a field is accessed by name */
+    template<typename T>
+    TermsQ(std::string &&field, std::initializer_list<T> vals, std::size_t m = 1):
+            _field(std::move(field)),
+            _vals(vals),
+            _minimumShouldMatch(m)
+    {}
+
+    void toJSON(JsonBuffer &buf) const
+    {
+        buf.String("terms");
+        buf.StartObject();
+        buf.String(_field);
+        buf.StartArray();
+        for (const auto &v: _vals)
+            v.Accept(buf);
+        buf.EndArray();
+        buf.String("minimum_should_match");
+        buf.Uint(_minimumShouldMatch);
+        buf.EndObject();
+    }
+};
+
 /* TODO
 Match Query
 Multi Match Query
@@ -157,7 +278,6 @@ Has Child Query
 Has Parent Query
 Ids Query
 Indices Query
-Match All Query
 More Like This Query
 Nested Query
 Prefix Query
@@ -172,7 +292,6 @@ Span Not Query
 Span Or Query
 Span Term Query
 Term Query
-Terms Query
 Top Children Query
 Wildcard Query
 Minimum Should Match
