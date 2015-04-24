@@ -28,7 +28,7 @@ class BoolQ: public IQuery
                        _should,
                        _mustNot;
 
-    std::size_t _minimumShouldMatch = 0;
+    ShouldMatch _minimumShouldMatch;
 
     static void printNonemptyArray(const char *name, const std::vector<Query> &v, JsonBuffer &buf)
     {
@@ -45,6 +45,24 @@ public:
     BoolQ()
     {}
 
+    /**
+     * @brief Adds a single Query to `must` array.
+     */
+    BoolQ &&must(Query q) &&
+    {
+        _must.push_back(std::move(q));
+        return std::move(*this);
+    }
+
+    /**
+     * @brief Adds a single Query to `should` array.
+     */
+    BoolQ &&should(Query q) &&
+    {
+        _should.push_back(std::move(q));
+        return std::move(*this);
+    }
+
     BoolQ && must(std::initializer_list<Query> queries) &&
     {
         _must.insert(_must.end(), queries);
@@ -57,9 +75,9 @@ public:
         return std::move(*this);
     }
 
-    BoolQ && minimumShouldMatch(std::size_t m) &&
+    BoolQ && minimumShouldMatch(ShouldMatch m) &&
     {
-        _minimumShouldMatch = m;
+        _minimumShouldMatch = std::move(m);
         return std::move(*this);
     }
 
@@ -70,9 +88,9 @@ public:
         printNonemptyArray("must", _must, buf);
         printNonemptyArray("should", _should, buf);
         printNonemptyArray("mustNot", _mustNot, buf);
-        if (_minimumShouldMatch != 0) {
+        if (!_minimumShouldMatch.empty()) {
             buf.String("minimum_should_match");
-            buf.Uint(_minimumShouldMatch);
+            _minimumShouldMatch.toJSON(buf);
         }
         buf.EndObject();
     }
@@ -100,6 +118,42 @@ BoolQ && operator||(Query &&q1, Query &&q2)
     return BoolQ().should({q1, q2});
 }
 
+class MatchQ: public IQuery
+{
+    std::string _field;
+    Value _val;
+public:
+    /* Typesafe variant when the field type is known */
+    template<typename T>
+    MatchQ(const Field<T> &field, T &&val):
+        _field(field.name()),
+        _val(std::move(val))
+    {}
+    /* Dynamic variant where a field is accessed by name */
+    template<typename T>
+    MatchQ(std::string &&field, T &&val):
+        _field(std::move(field)),
+        _val(std::move(val))
+    {}
+
+    void toJSON(JsonBuffer &buf) const
+    {
+        buf.String("term");
+        buf.StartObject();
+        buf.String(_field);
+        _val.Accept(buf);
+        buf.EndObject();
+    }
+};
+
+/**
+ * @brief
+ */
+template<typename T>
+MatchQ operator==(const Field<T> &field, T &&val)
+{
+    return MatchQ(field, std::move(val));
+}
 
 class MatchAllQ: public IQuery
 {
@@ -110,6 +164,22 @@ public:
         buf.StartObject();
         buf.EndObject();
     }
+};
+
+class QueryStringQ: public IQuery
+{
+    std::string _field;
+    std::string _query;
+public:
+    QueryStringQ(std::string field, std::string query):
+        _field(std::move(field)),
+        _query(std::move(query))
+    {}
+    template<typename T>
+    QueryStringQ(const Field<T> &field, std::string query):
+        _field(field.name()),
+        _query(std::move(query))
+    {}
 };
 
 class RangeQ: public IQuery
@@ -153,6 +223,10 @@ public:
     }
 };
 
+/**
+ * @brief Monomorphic wrapper over RangeQ for fields with statically known types
+ *        to build complex ranges in typesafe way
+ */
 template<typename T>
 class TypedRangeQ: public IQuery
 {

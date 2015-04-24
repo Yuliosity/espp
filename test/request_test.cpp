@@ -25,6 +25,11 @@ TEST(Test, MakeBoolRequest) {
     ASSERT_EQ(R"({"query":{"bool":{"must":[{"term":{"checked":false}},{"term":{"name":"kimchy"}}]}},"size":10})", req.toString());
 }
 
+TEST(Test, TestShouldMatch) {
+    auto req = Request(BoolQ().should({TermQ("checked", false), TermQ("name", "kimchy")}).minimumShouldMatch(1));
+    ASSERT_EQ(R"({"query":{"bool":{"should":[{"term":{"checked":false}},{"term":{"name":"kimchy"}}],"minimum_should_match":1}},"size":10})", req.toString());
+}
+
 TEST(Test, MakeBoolRequestWithOperators) {
     auto req = Request(TermQ("checked", false) && TermQ("name", "kimchy") && TermQ("age", 42));
     ASSERT_EQ(R"({"query":{"bool":{"must":[{"term":{"checked":false}},{"term":{"name":"kimchy"}},{"term":{"age":42}}]}},"size":10})", req.toString());

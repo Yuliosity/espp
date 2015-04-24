@@ -57,6 +57,28 @@ typedef JsonValue Value;
     JsonValue _val;
 };*/
 
+class ShouldMatch
+{
+    JsonValue _val;
+public:
+    ShouldMatch() = default;
+    ShouldMatch(int i):
+        _val(i)
+    {}
+    /*ShouldMatch(double percent):
+        _val((std::to_string(percent) + "%").c_str())
+    {}*/
+    void toJSON(JsonBuffer &buf) const
+    {
+        _val.Accept(buf);
+    }
+
+    bool empty() const
+    {
+        return _val.IsNull();
+    }
+};
+
 }
 
 #endif //ESPP_JSON_HPP
